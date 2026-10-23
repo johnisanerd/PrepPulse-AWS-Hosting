@@ -60,10 +60,10 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nlet transcriptText = '';\nlet videoTitle = 'YouTube Video';\n\nfor (const item of items) {\n  const data = item.json;\n\n  if (typeof data.non_timestamped === 'string') {\n    transcriptText += data.non_timestamped + ' ';\n  }\n  // legacy actor shapes: array of {text, start, duration}\n  if (Array.isArray(data) ) {\n    transcriptText += data.map(d => d.text || d).filter(Boolean).join(' ') + ' ';\n  }\n  if (typeof data.transcript === 'string') {\n    transcriptText += data.transcript + ' ';\n  } else if (Array.isArray(data.transcript)) {\n    transcriptText += data.transcript.map(t => t.text || t).filter(Boolean).join(' ') + ' ';\n  }\n  if (Array.isArray(data.captions)) {\n    transcriptText += data.captions.map(c => c.text || c).filter(Boolean).join(' ') + ' ';\n  }\n  if (typeof data.text === 'string') {\n    transcriptText += data.text + ' ';\n  }\n  if (data.title) videoTitle = data.title;\n  if (data.videoTitle) videoTitle = data.videoTitle;\n}\n\n// Deep scan: pull all 'text' string values recursively\nif (!transcriptText.trim()) {\n  function extractText(obj) {\n    if (!obj || typeof obj !== 'object') return '';\n    let out = '';\n    for (const key of Object.keys(obj)) {\n      if (key === 'text' && typeof obj[key] === 'string') out += obj[key] + ' ';\n      else out += extractText(obj[key]);\n    }\n    return out;\n  }\n  transcriptText = items.map(i => extractText(i.json)).join(' ');\n}\n\nif (!transcriptText.trim()) {\n  throw new Error('Could not extract transcript. Check Apify actor response in previous node.');\n}\n\nconst trimmed = transcriptText.trim().substring(0, 6000);\n\nreturn [{\n  json: {\n    transcript: trimmed,\n    videoTitle,\n    youtubeUrl: $('\u2460 Form \u2014 Input YouTube URL').item.json['YouTube Video URL'],\n    charCount: trimmed.length\n  }\n}];"
+        "jsCode": "const items = $input.all();\nlet transcriptText = '';\nlet videoTitle = 'YouTube Video';\n\nfor (const item of items) {\n  const data = item.json;\n\n  if (typeof data.non_timestamped === 'string') {\n    transcriptText += data.non_timestamped + ' ';\n  }\n  // legacy actor shapes: array of {text, start, duration}\n  if (Array.isArray(data) ) {\n    transcriptText += data.map(d => d.text || d).filter(Boolean).join(' ') + ' ';\n  }\n  if (typeof data.transcript === 'string') {\n    transcriptText += data.transcript + ' ';\n  } else if (Array.isArray(data.transcript)) {\n    transcriptText += data.transcript.map(t => t.text || t).filter(Boolean).join(' ') + ' ';\n  }\n  if (Array.isArray(data.captions)) {\n    transcriptText += data.captions.map(c => c.text || c).filter(Boolean).join(' ') + ' ';\n  }\n  if (typeof data.text === 'string') {\n    transcriptText += data.text + ' ';\n  }\n  if (data.title) videoTitle = data.title;\n  if (data.videoTitle) videoTitle = data.videoTitle;\n}\n\n// Deep scan: pull all 'text' string values recursively\nif (!transcriptText.trim()) {\n  function extractText(obj) {\n    if (!obj || typeof obj !== 'object') return '';\n    let out = '';\n    for (const key of Object.keys(obj)) {\n      if (key === 'text' && typeof obj[key] === 'string') out += obj[key] + ' ';\n      else out += extractText(obj[key]);\n    }\n    return out;\n  }\n  transcriptText = items.map(i => extractText(i.json)).join(' ');\n}\n\nif (!transcriptText.trim()) {\n  throw new Error('Could not extract transcript. Check Apify actor response in previous node.');\n}\n\nconst trimmed = transcriptText.trim().substring(0, 6000);\n\nreturn [{\n  json: {\n    transcript: trimmed,\n    videoTitle,\n    youtubeUrl: $('① Form — Input YouTube URL').item.json['YouTube Video URL'],\n    charCount: trimmed.length\n  }\n}];"
       },
       "id": "code-extract-03",
-      "name": "\u2462 Code \u2014 Extract Transcript",
+      "name": "③ Code — Extract Transcript",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [680, 300]
@@ -93,36 +93,36 @@
         }
       },
       "id": "gemini-http-04",
-      "name": "\u2463 Gemini \u2014 Generate Mindmap",
+      "name": "④ Gemini — Generate Mindmap",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [940, 300]
     },
     {
       "parameters": {
-        "jsCode": "const response = $input.first().json;\n\nlet mermaidCode = '';\ntry {\n  mermaidCode = response.candidates[0].content.parts[0].text;\n} catch (e) {\n  throw new Error('Gemini response parse failed: ' + JSON.stringify(response).substring(0, 400));\n}\n\n// Strip any fences Gemini might add\nmermaidCode = mermaidCode\n  .replace(/```mermaid/gi, '')\n  .replace(/```/g, '')\n  .trim();\n\n// Ensure starts with mindmap\nif (!mermaidCode.toLowerCase().startsWith('mindmap')) {\n  mermaidCode = 'mindmap\\n' + mermaidCode;\n}\n\nconsole.log('Mermaid output:', mermaidCode);\n\n// Build mermaid.ink URLs\nconst base64 = Buffer.from(mermaidCode, 'utf-8').toString('base64')\n  .replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=/g, '');\n\nconst imageUrl = `https://mermaid.ink/img/${base64}?type=png&bgColor=f8f9ff`;\nconst svgUrl   = `https://mermaid.ink/svg/${base64}`;\n\n// Mermaid Live editor\nconst editorState = Buffer.from(JSON.stringify({ code: mermaidCode, mermaid: '{\"theme\":\"default\"}', autoSync: true })).toString('base64').replace(/\\+/g, '-').replace(/\\//g, '_');\nconst editorUrl = `https://mermaid.live/edit#base64:${editorState}`;\n\nconst videoTitle = $('\u2462 Code \u2014 Extract Transcript').first().json.videoTitle;\nconst youtubeUrl = $('\u2462 Code \u2014 Extract Transcript').first().json.youtubeUrl;\n\nreturn [{ json: { mermaidCode, imageUrl, svgUrl, editorUrl, videoTitle, youtubeUrl } }];"
+        "jsCode": "const response = $input.first().json;\n\nlet mermaidCode = '';\ntry {\n  mermaidCode = response.candidates[0].content.parts[0].text;\n} catch (e) {\n  throw new Error('Gemini response parse failed: ' + JSON.stringify(response).substring(0, 400));\n}\n\n// Strip any fences Gemini might add\nmermaidCode = mermaidCode\n  .replace(/```mermaid/gi, '')\n  .replace(/```/g, '')\n  .trim();\n\n// Ensure starts with mindmap\nif (!mermaidCode.toLowerCase().startsWith('mindmap')) {\n  mermaidCode = 'mindmap\\n' + mermaidCode;\n}\n\nconsole.log('Mermaid output:', mermaidCode);\n\n// Build mermaid.ink URLs\nconst base64 = Buffer.from(mermaidCode, 'utf-8').toString('base64')\n  .replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=/g, '');\n\nconst imageUrl = `https://mermaid.ink/img/${base64}?type=png&bgColor=f8f9ff`;\nconst svgUrl   = `https://mermaid.ink/svg/${base64}`;\n\n// Mermaid Live editor\nconst editorState = Buffer.from(JSON.stringify({ code: mermaidCode, mermaid: '{\"theme\":\"default\"}', autoSync: true })).toString('base64').replace(/\\+/g, '-').replace(/\\//g, '_');\nconst editorUrl = `https://mermaid.live/edit#base64:${editorState}`;\n\nconst videoTitle = $('③ Code — Extract Transcript').first().json.videoTitle;\nconst youtubeUrl = $('③ Code — Extract Transcript').first().json.youtubeUrl;\n\nreturn [{ json: { mermaidCode, imageUrl, svgUrl, editorUrl, videoTitle, youtubeUrl } }];"
       },
       "id": "code-build-url-05",
-      "name": "\u2464 Code \u2014 Build Image URL",
+      "name": "⑤ Code — Build Image URL",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [1200, 300]
     }
   ],
   "connections": {
-    "\u2460 Form \u2014 Input YouTube URL": {
-      "main": [[{ "node": "\u2461 Apify \u2014 Get YouTube Transcript", "type": "main", "index": 0 }]]
+    "① Form — Input YouTube URL": {
+      "main": [[{ "node": "② Apify — Get YouTube Transcript", "type": "main", "index": 0 }]]
     },
-    "\u2461 Apify \u2014 Get YouTube Transcript": {
-      "main": [[{ "node": "\u2462 Code \u2014 Extract Transcript", "type": "main", "index": 0 }]]
+    "② Apify — Get YouTube Transcript": {
+      "main": [[{ "node": "③ Code — Extract Transcript", "type": "main", "index": 0 }]]
     },
-    "\u2462 Code \u2014 Extract Transcript": {
-      "main": [[{ "node": "\u2463 Gemini \u2014 Generate Mindmap", "type": "main", "index": 0 }]]
+    "③ Code — Extract Transcript": {
+      "main": [[{ "node": "④ Gemini — Generate Mindmap", "type": "main", "index": 0 }]]
     },
-    "\u2463 Gemini \u2014 Generate Mindmap": {
-      "main": [[{ "node": "\u2464 Code \u2014 Build Image URL", "type": "main", "index": 0 }]]
+    "④ Gemini — Generate Mindmap": {
+      "main": [[{ "node": "⑤ Code — Build Image URL", "type": "main", "index": 0 }]]
     },
-    "\u2464 Code \u2014 Build Image URL": {
+    "⑤ Code — Build Image URL": {
       "main": [[]]
     }
   },

@@ -63,7 +63,7 @@ AITAM/
 |  |- static/
 |  |  |- css/
 |  |  |- js/
-|- templates/
+|  |- templates/
 |- Knowledge base/
 |- data/
 |  |- resources/
